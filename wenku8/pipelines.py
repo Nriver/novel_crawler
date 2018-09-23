@@ -29,7 +29,7 @@ class Wenku8Pipeline(object):
             novel_no = item['novel_no']
             print u'写入文件 卷数%s 章节%s ' % (volumn_index, chapter_index)
             # 创建文件夹
-            volumn_folder = os.getcwd().replace('\\', '/') + '/' + str(novel_no) + '/' + str(volumn_index)
+            volumn_folder = os.getcwd().replace('\\', '/') + '/download/' + str(novel_no) + '/' + str(volumn_index)
             chapter_file_path = str(volumn_folder) + '/' + str(chapter_index) + '.html'
             if not os.path.exists(volumn_folder):
                 try:

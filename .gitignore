@@ -1,5 +1,6 @@
 #Nate's ignore list
 log.txt
+download/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

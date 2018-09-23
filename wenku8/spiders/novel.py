@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-23 19:48:30
+# @Last Modified time: 2018-09-23 20:18:46
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem
@@ -33,6 +33,7 @@ class NovelSpider(scrapy.Spider):
 
     def start_requests(self):
         url = 'https://www.wenku8.net/book/1618.htm'
+        url = 'https://www.wenku8.net/book/1213.htm'
         yield scrapy.Request(url, self.parse)
 
     def parse(self, response):
