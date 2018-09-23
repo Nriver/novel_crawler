@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-23 20:18:46
+# @Last Modified time: 2018-09-23 21:05:14
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem
@@ -32,8 +32,11 @@ class NovelSpider(scrapy.Spider):
         return content
 
     def start_requests(self):
-        url = 'https://www.wenku8.net/book/1618.htm'
-        url = 'https://www.wenku8.net/book/1213.htm'
+        novel_no = getattr(self, 'no', None)
+        if novel_no != None:
+            url = 'https://www.wenku8.net/book/%s.htm' % novel_no
+        else:
+            url = 'https://www.wenku8.net/book/1213.htm'
         yield scrapy.Request(url, self.parse)
 
     def parse(self, response):
