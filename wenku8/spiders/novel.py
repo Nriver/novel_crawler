@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-23 21:05:14
+# @Last Modified time: 2018-09-23 22:41:59
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem
@@ -69,7 +69,7 @@ class NovelSpider(scrapy.Spider):
         scrapy shell https://www.wenku8.net/novel/1/1618/index.htm
         """
         # volumns = response.css(".vcss")
-        # chpaters = response.css(".ccss")
+        # chapters = response.css(".ccss")
 
         novel_info = response.meta['novel_info']
         novel_no = novel_info['novel_no']
@@ -149,14 +149,18 @@ class NovelSpider(scrapy.Spider):
 
         # 内容
         chapter_content = response.css("#content").extract_first()
+        chapter_content = self.content_filter(chapter_content)
+        # dirty hack
+        # 因为使用ebooklib生成epub可以直接用数据 不用文件 这里就省掉生成单个文件的步骤
+        # chapter_item = ChapterItem()
+        # chapter_item['volumn_index'] = volumn_index
+        # chapter_item['chapter_index'] = chapter_index
+        # chapter_item['chapter_content'] = chapter_content
+        # chapter_item['novel_no'] = novel_no
+        # yield chapter_item
 
-        chapter_item = ChapterItem()
-        chapter_item['volumn_index'] = volumn_index
-        chapter_item['chapter_index'] = chapter_index
-        chapter_item['chapter_content'] = chapter_content
-        chapter_item['novel_no'] = novel_no
-        yield chapter_item
-
+        # 直接把每个章节的内容写到volumn里面
+        volumn['chapters'][chapter_index].append(chapter_content)
         if len(volumn['chapters']) != chapter_index + 1:
             chapter_index += 1
             yield scrapy.Request(volumn['chapters'][chapter_index][1], meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': volumn_index}, callback=self.parse_chapter)
@@ -164,9 +168,9 @@ class NovelSpider(scrapy.Spider):
         else:
             # 已经遍历完所有的章节 可以对某一卷进行合并了
             volumn_item = VolumnItem()
-            volumn_item['novel_name'] = volumn_index
+            volumn_item['novel_info'] = novel_info
+            volumn_item['volumn'] = volumn
             volumn_item['volumn_index'] = volumn_index
-            volumn_item['chapters'] = volumn['chapters']
 
             # 小说名称
             novel_name = scrapy.Field()
