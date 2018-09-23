@@ -57,6 +57,11 @@ class GenerateEpubPipeline(object):
         [x.extract() for x in soup_detail.find_all('ul', id='contentdp')]
         return unicode(soup_detail.prettify())
 
+    @staticmethod
+    def get_cover_image(page_content):
+        soup_detail = BeautifulSoup(page_content, 'lxml', from_encoding='utf-8')
+        return soup_detail.find('img').get('src')
+
     def process_item(self, item, spider):
         if isinstance(item, VolumnItem):
             # print u'处理一卷书'
@@ -73,13 +78,27 @@ class GenerateEpubPipeline(object):
             book.add_author(novel_info['novel_author'])
             # basic spine
             book.spine = ['nav']
+
+            # 书里所有的图片
+            # 存储格式是 [['1.jpg', 'http://nriver.cn/1.jpg'],['2.jpg', 'http://nriver.cn/2.jpg']]
+            pictures = []
             for index, chapter in enumerate(item['volumn']['chapters']):
                 c = epub.EpubHtml(title=chapter[0], file_name='Text/%s.xhtml' % index, lang='zh')
                 c.content = item['volumn']['chapters'][index][2]
                 c.content = self.prettify_html(c.content)
+
+                # TODO
+                # 这里要把图片链接找出来
+                # 存入pictures里面
+                # 然后替换成相对链接
+
                 book.add_item(c)
                 book.toc.append(epub.Link('Text/%s.xhtml' % index, chapter[0], chapter[0]))
                 book.spine.append(c)
+
+            # TODO
+            # 这里要把pictures里的图片都下载下来
+
             book.add_item(epub.EpubNcx())
             book.add_item(epub.EpubNav())
 
