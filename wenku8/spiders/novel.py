@@ -2,21 +2,22 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-23 23:26:41
+# @Last Modified time: 2018-09-25 13:27:08
 import os
 import scrapy
-from wenku8.items import ChapterItem, VolumnItem
+from wenku8.items import ChapterItem, VolumnItem, ImageItem
 from scrapy.utils.response import get_base_url
 from scrapy.utils.url import urljoin_rfc
 import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
+from bs4 import BeautifulSoup
 
 
 class NovelSpider(scrapy.Spider):
     name = 'novel'
     save_path = 'download'
-    allowed_domains = ['www.wenku8.net', 'pic.wkcdn.com']
+    # allowed_domains = ['www.wenku8.net', 'pic.wkcdn.com']
 
     @staticmethod
     def name_filter(title):
@@ -78,7 +79,7 @@ class NovelSpider(scrapy.Spider):
         tds = response.css("body > table td")
         volumns = []
         # 初始化单卷的信息数据
-        volumn = {'volumn_name': '', 'chapters': []}
+        volumn = {'volumn_name': '', 'chapters': [], 'images': []}
         chapters = []
         current_volumn_count = 0
         current_chapter_count = 0
@@ -94,7 +95,7 @@ class NovelSpider(scrapy.Spider):
                     volumn['chapters'] = chapters
                     volumns.append(volumn)
                     # 初始化现在要解析的这一卷数据
-                    volumn = {'volumn_name': '', 'chapters': []}
+                    volumn = {'volumn_name': '', 'chapters': [], 'images': []}
                     chapters = []
                     # 重置章节数
                     current_chapter_count = 0
@@ -128,8 +129,7 @@ class NovelSpider(scrapy.Spider):
         print u'总卷数 %s' % len(volumns)
         for index, volumn in enumerate(volumns):
             chapter_index = 0
-            print index, volumn['chapters'][chapter_index][1]
-            print volumn['volumn_name']
+            print index, volumn['volumn_name'], volumn['chapters'][chapter_index][1]
             yield scrapy.Request(volumn['chapters'][chapter_index][1], meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': index}, callback=self.parse_chapter)
 
     def parse_chapter(self, response):
@@ -142,14 +142,34 @@ class NovelSpider(scrapy.Spider):
         chapter_index = response.meta['chapter_index']
         volumn_index = response.meta['volumn_index']
         novel_no = novel_info['novel_no']
-
-        # # 章节标题
-        # chapter_name = response.css("#title::text").extract_first()
-        # chapter_name = self.name_filter(chapter_name)
+        images = volumn['images']
 
         # 内容
         chapter_content = response.css("#content").extract_first()
         chapter_content = self.content_filter(chapter_content)
+
+        # 提取图片url 并改写
+        soup_detail = BeautifulSoup(chapter_content, "lxml", from_encoding='utf-8')
+        # 提取包含图片的div
+        image_divs = soup_detail.find_all('div', class_='divimage')
+        # 提取图片链接
+        for image_div in image_divs:
+            # 提取子元素 插入到和父级元素同级的位置
+            image_div.insert(0, image_div.a.img)
+            # 删除不需要的元素
+            image_div.a.extract()
+            # 提取图片路径
+            image_url = image_div.img.get('src')
+            images.append(image_url)
+            # 修改为相对路径
+            image_div.img['src'] = '../Images/' + image_url.split('/')[-1]
+
+        # 保存图片链接
+        volumn['images'] = images
+
+        # 把修改后的页面存回去
+        chapter_content = soup_detail.prettify()
+
         # dirty hack
         # 因为使用ebooklib生成epub可以直接用数据 不用文件 这里就省掉生成单个文件的步骤
         # chapter_item = ChapterItem()
@@ -166,19 +186,18 @@ class NovelSpider(scrapy.Spider):
             yield scrapy.Request(volumn['chapters'][chapter_index][1], meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': volumn_index}, callback=self.parse_chapter)
 
         else:
-            # 已经遍历完所有的章节 可以对某一卷进行合并了
+            # 卷 item
             volumn_item = VolumnItem()
             volumn_item['novel_info'] = novel_info
             volumn_item['volumn'] = volumn
             volumn_item['volumn_index'] = volumn_index
+            # yield volumn_item
 
-            # 小说名称
-            novel_name = scrapy.Field()
-            # 小说编号
-            novel_no = scrapy.Field()
-            # 作者
-            novel_author = scrapy.Field()
-            # 卷的名称
-            volume_name = scrapy.Field()
-
-            yield volumn_item
+            # 已经遍历完所有的章节 接下来要把图片下载下来
+            # print volumn['images']
+            image_item = ImageItem()
+            image_item['image_urls'] = volumn['images']
+            image_item['volumn_item'] = volumn_item
+            # image_item['novel_no'] = novel_info['novel_no']
+            image_item['download_finish_flag'] = False
+            yield image_item

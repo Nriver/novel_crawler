@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
-
+# @Author: Zengjq
+# @Date:   2018-09-23 20:12:01
+# @Last Modified by:   Zengjq
+# @Last Modified time: 2018-09-24 11:29:43
 # Scrapy settings for wenku8 project
-#
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
+import os
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
 #
@@ -19,7 +25,7 @@ NEWSPIDER_MODULE = 'wenku8.spiders'
 #USER_AGENT = 'wenku8 (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
@@ -66,9 +72,11 @@ ROBOTSTXT_OBEY = True
 # See https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     'wenku8.pipelines.Wenku8Pipeline': 300,
+    'wenku8.pipelines.ImageDownloadPipeline': 300,
     'wenku8.pipelines.GenerateEpubPipeline': 300,
 }
-
+# 设置图片下载路径
+IMAGES_STORE = 'e:\\GitHub\\novel_crawler\\download'
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True

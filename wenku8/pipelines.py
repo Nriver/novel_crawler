@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-
+# @Author: Zengjq
+# @Date:   2018-09-23 20:12:01
+# @Last Modified by:   Zengjq
+# @Last Modified time: 2018-09-25 14:46:15
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -8,9 +11,12 @@ import os
 import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
-from wenku8.items import VolumnItem, ChapterItem
+from wenku8.items import VolumnItem, ChapterItem, ImageItem
 from bs4 import BeautifulSoup
 from ebooklib import epub
+import scrapy
+from scrapy.pipelines.images import ImagesPipeline
+from scrapy.exceptions import DropItem
 
 
 class Wenku8Pipeline(object):
@@ -41,9 +47,16 @@ class Wenku8Pipeline(object):
             # 写文件
             with open(chapter_file_path, 'wb') as f:
                 f.write(unicode(soup_detail.prettify()))
+        # 这个return是很重要的
+        # 如果不return 下一个pipeline就收不到item
+        return item
 
 
-class GenerateEpubPipeline(object):
+class ImageDownloadPipeline(ImagesPipeline):
+    """
+    先下载图片
+    然后生成epub
+    """
 
     @staticmethod
     def prettify_html(page_content):
@@ -60,57 +73,98 @@ class GenerateEpubPipeline(object):
     @staticmethod
     def get_cover_image(page_content):
         soup_detail = BeautifulSoup(page_content, 'lxml', from_encoding='utf-8')
-        return soup_detail.find('img').get('src')
+    # pic.wkcdn.com 有反爬虫机制
+    # 不遵守robot.txt
+    # header可以不要
+    # 如果要添加 一定不能加referer 有referer就会被屏蔽
 
-    def process_item(self, item, spider):
-        if isinstance(item, VolumnItem):
-            # print u'处理一卷书'
-            volumn_index = item['volumn_index']
-            volumn = item['volumn']
-            novel_info = item['novel_info']
-            print item['volumn']['chapters'][0][2][:100]
-            print u'生成 卷数%s 的epub' % volumn_index
+    default_headers = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7',
+        'Cache-Control': 'max-age=0',
+        'DNT: 1': 1,
+        'Host': 'pic.wkcdn.com',
+        'Proxy-Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': 1,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
+    }
 
-            # 生成epub
-            book = epub.EpubBook()
-            book.set_title(novel_info['novel_name'])
-            book.set_language('zh')
-            book.add_author(novel_info['novel_author'])
-            # basic spine
-            book.spine = ['nav']
+    def get_media_requests(self, item, info):
+        if isinstance(item, ImageItem):
+            print u'下载卷 %s 的图片' % item['volumn_item']['volumn_index']
+            for image_url in item['image_urls']:
+                # print image_url
+                # 拼一下图片存储的路径
+                novel_no = item['volumn_item']['novel_info']['novel_no']
+                volumn_index = item['volumn_item']['volumn_index']
+                file_name = image_url.split('/')[-1]
+                file_store_path = novel_no + '/Images/' + str(volumn_index) + '/' + file_name
+                yield scrapy.Request(image_url, meta={'file_store_path': file_store_path}, headers=self.default_headers)
+                # yield scrapy.Request(image_url)
 
-            # 书里所有的图片
-            # 存储格式是 [['1.jpg', 'http://nriver.cn/1.jpg'],['2.jpg', 'http://nriver.cn/2.jpg']]
-            pictures = []
-            for index, chapter in enumerate(item['volumn']['chapters']):
-                c = epub.EpubHtml(title=chapter[0], file_name='Text/%s.xhtml' % index, lang='zh')
-                c.content = item['volumn']['chapters'][index][2]
-                c.content = self.prettify_html(c.content)
+    def file_path(self, request, response=None, info=None):
+        return request.meta['file_store_path']
 
-                # TODO
-                # 这里要把图片链接找出来
-                # 存入pictures里面
-                # 然后替换成相对链接
+    def item_completed(self, results, item, info):
+        # 书里所有的图片
+        image_paths = [x['path'] for ok, x in results if ok]
+        if not image_paths:
+            raise DropItem("Item contains no images")
+        item['image_paths'] = image_paths
 
-                book.add_item(c)
-                book.toc.append(epub.Link('Text/%s.xhtml' % index, chapter[0], chapter[0]))
-                book.spine.append(c)
+        item['download_finish_flag'] = True
+        # return item
+        # # 已经遍历完所有的章节 可以对某一卷进行合并了
+        volumn_item = item['volumn_item']
 
-            # TODO
-            # 这里要把pictures里的图片都下载下来
+        novel_no = item['volumn_item']['novel_info']['novel_no']
+        volumn_index = volumn_item['volumn_index']
+        volumn = volumn_item['volumn']
+        novel_info = volumn_item['novel_info']
+        # print volumn_item['volumn']['chapters'][0][2][:100]
+        print u'卷数%s图片下载完成 生成epub' % volumn_index
 
-            book.add_item(epub.EpubNcx())
-            book.add_item(epub.EpubNav())
+        # 生成epub
+        book = epub.EpubBook()
+        book.set_title(novel_info['novel_name'])
+        book.set_language('zh')
+        book.add_author(novel_info['novel_author'])
+        # basic spine
+        book.spine = ['nav']
 
-            epub_folder = os.getcwd().replace('\\', '/') + '/download/' + novel_info['novel_no']
-            epub_path = epub_folder + '/' + str(volumn_index) + '.epub'
-            if not os.path.exists(epub_folder):
-                try:
-                    os.makedirs(epub_folder)
-                except:
-                    pass
+        for index, chapter in enumerate(volumn_item['volumn']['chapters']):
+            c = epub.EpubHtml(title=chapter[0], file_name='Text/%s.xhtml' % index, lang='zh')
+            c.content = volumn_item['volumn']['chapters'][index][2]
+            c.content = self.prettify_html(c.content)
 
-            epub.write_epub(epub_path, book, {})
+            book.add_item(c)
+            book.toc.append(epub.Link('Text/%s.xhtml' % index, chapter[0], chapter[0]))
+            book.spine.append(c)
 
-        # 这里不return也可以
+        # 这里要把所有的插图放到epub里面去
+        for image_path in image_paths:
+            # epub内的文件路径
+            file_name = 'Images/' + image_path.split('/')[-1]
+            # 实际图片的完整路径
+            file_path = os.getcwd().replace('\\\\', '/') + '/download/' + image_path
+            epub_image_item = epub.EpubItem(uid="image", file_name=file_name, content=open(file_path, 'rb').read())
+            book.add_item(epub_image_item)
+            pass
+
+        # 加入默认的ncx和nav(做什么的?)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+
+        # 生成epub文件
+        epub_folder = os.getcwd().replace('\\', '/') + '/download/' + novel_info['novel_no']
+        epub_path = epub_folder + '/' + str(volumn_index) + '.epub'
+        if not os.path.exists(epub_folder):
+            try:
+                os.makedirs(epub_folder)
+            except:
+                pass
+        # 写入epub文件
+        epub.write_epub(epub_path, book, {})
+
         return item
