@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-25 14:46:15
+# @Last Modified time: 2018-09-26 13:23:55
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -127,17 +127,17 @@ class ImageDownloadPipeline(ImagesPipeline):
 
         # 生成epub
         book = epub.EpubBook()
-        book.set_title(novel_info['novel_name'])
+        # epub信息名称是小说名称+卷名称
+        book.set_title(novel_info['novel_name'] + ' ' + volumn['volumn_name'])
         book.set_language('zh')
         book.add_author(novel_info['novel_author'])
         # basic spine
         book.spine = ['nav']
-
+        # 添加小说文字章节
         for index, chapter in enumerate(volumn_item['volumn']['chapters']):
             c = epub.EpubHtml(title=chapter[0], file_name='Text/%s.xhtml' % index, lang='zh')
             c.content = volumn_item['volumn']['chapters'][index][2]
             c.content = self.prettify_html(c.content)
-
             book.add_item(c)
             book.toc.append(epub.Link('Text/%s.xhtml' % index, chapter[0], chapter[0]))
             book.spine.append(c)
@@ -151,6 +151,29 @@ class ImageDownloadPipeline(ImagesPipeline):
             epub_image_item = epub.EpubItem(uid="image", file_name=file_name, content=open(file_path, 'rb').read())
             book.add_item(epub_image_item)
             pass
+
+        # 生成封面图
+        if image_paths:
+            # 如果有插图 就用第一张插图当封面
+            file_name = 'Images/' + image_paths[0].split('/')[-1]
+            file_path = os.getcwd().replace('\\', '/') + '/download/' + image_paths[0]
+            book.set_cover(file_name, content=open(file_path, 'rb').read(), create_page=True)
+        else:
+            # 如果某卷一个插图都没有 那就用网站上的缩略图
+            import urllib
+            cover_url = item['volumn_item']['novel_info']['novel_cover']
+            cover_ext = cover_url.split('.')[-1]
+            image_folder_path = os.getcwd().replace('\\', '/') + '/download/' + novel_no + '/Images/' + str(volumn_index)
+            cover_path = image_folder_path + '/cover.' + cover_ext
+            print u'下载缩略图 %s 保存路径 %s' % (cover_url, cover_path)
+            if not os.path.exists(image_folder_path):
+                os.makedirs(image_folder_path)
+            try:
+                urllib.urlretrieve(cover_url, cover_path)
+                print u'封面文件已下载', os.path.exists(cover_path)
+                book.set_cover('Images/cover.' + cover_ext, content=open(cover_path, 'rb').read(), create_page=True)
+            except:
+                print u'小说 %s 封面下载失败' % book.title
 
         # 加入默认的ncx和nav(做什么的?)
         book.add_item(epub.EpubNcx())

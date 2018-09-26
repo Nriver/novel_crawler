@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-25 13:27:08
+# @Last Modified time: 2018-09-26 12:57:28
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem, ImageItem
@@ -44,10 +44,14 @@ class NovelSpider(scrapy.Spider):
         """
         小说首页解析
         scrapy shell https://www.wenku8.net/book/1618.htm
+        scrapy shell https://www.wenku8.net/book/1715.htm
         """
         # 小说名称
-        novel_name = response.css("#content > div:nth-child(1) > table:nth-child(1) > tr:nth-child(1) > td > table > tr > td:nth-child(1) > span > b::text").extract_first()
-        novel_author = response.css("#content > div:nth-child(1) > table:nth-child(1) > tr:nth-child(2) > td:nth-child(2)").extract_first()[5:]
+        novel_name = response.css("#content > div:nth-child(1) > table:nth-child(1) > tr:nth-child(1) > td > table > tr > td:nth-child(1) > span > b::text").extract_first().strip()
+        # 作者
+        novel_author = response.css("#content > div:nth-child(1) > table:nth-child(1) > tr:nth-child(2) > td:nth-child(2)::text").extract_first()[5:].strip()
+        # 封面图(仅在没有更好的图片的时候才用)
+        novel_cover = response.css("#content > div:nth-child(1) > table:nth-child(4) > tr > td:nth-child(1) > img::attr(src)").extract_first()
         # 小说简介
         novel_description = ''.join(response.css("#content > div:nth-child(1) > table:nth-child(4) > tr > td:nth-child(2) > span:nth-child(11)::text").extract())
 
@@ -56,6 +60,7 @@ class NovelSpider(scrapy.Spider):
         novel_info['novel_no'] = novel_no
         novel_info['novel_name'] = novel_name
         novel_info['novel_author'] = novel_author
+        novel_info['novel_cover'] = novel_cover
         novel_info['novel_description'] = novel_description
 
         # 目录页面链接
