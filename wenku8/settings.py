@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-24 11:29:43
+# @Last Modified time: 2018-09-26 12:09:35
 # Scrapy settings for wenku8 project
 import sys
 reload(sys)
@@ -73,7 +73,6 @@ ROBOTSTXT_OBEY = False
 ITEM_PIPELINES = {
     'wenku8.pipelines.Wenku8Pipeline': 300,
     'wenku8.pipelines.ImageDownloadPipeline': 300,
-    'wenku8.pipelines.GenerateEpubPipeline': 300,
 }
 # 设置图片下载路径
 IMAGES_STORE = 'e:\\GitHub\\novel_crawler\\download'
