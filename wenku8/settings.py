@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-26 12:09:35
+# @Last Modified time: 2018-09-26 20:52:39
 # Scrapy settings for wenku8 project
 import sys
 reload(sys)
@@ -101,3 +101,13 @@ IMAGES_STORE = 'e:\\GitHub\\novel_crawler\\download'
 # LOG_LEVEL = 'ERROR'  # to only display errors
 # LOG_FORMAT = '%(levelname)s: %(message)s'
 LOG_FILE = 'log.txt'
+
+# calibre设置
+USE_CALIBRE = True
+CALIBRE_IP = '192.168.1.2:10012'
+CALIBRE_LIBRARY_NAME = '临时书库'
+# calibre的用户名密码
+CALIBRE_USERNAME = 'ck567'
+CALIBRE_PASSWORD = 'ck567'
+# 电子书重复是否也添加
+ADD_WHEN_DUPLICATE = False

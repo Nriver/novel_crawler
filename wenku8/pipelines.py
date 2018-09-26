@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-26 13:23:55
+# @Last Modified time: 2018-09-26 20:54:08
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -17,6 +17,9 @@ from ebooklib import epub
 import scrapy
 from scrapy.pipelines.images import ImagesPipeline
 from scrapy.exceptions import DropItem
+from scrapy.utils.project import get_project_settings
+import requests
+from requests.auth import HTTPDigestAuth
 
 
 class Wenku8Pipeline(object):
@@ -73,6 +76,28 @@ class ImageDownloadPipeline(ImagesPipeline):
     @staticmethod
     def get_cover_image(page_content):
         soup_detail = BeautifulSoup(page_content, 'lxml', from_encoding='utf-8')
+
+    @staticmethod
+    def uplaod_book_to_calibre(book_path, calibre_ip, username, password, calibre_library_name, add_when_duplicate=False):
+        calibre_library_name = requests.utils.requote_uri(calibre_library_name)
+        """
+        给calibre添加电子书
+        """
+        add_when_duplicate = {True: 'y', False: 'n'}[add_when_duplicate]
+        url = 'http://' + calibre_ip + '/cdb/add-book/1/' + add_when_duplicate + '/0.epub/' + calibre_library_name
+        files = {
+            # 文件名可以随便取 关键的是路径不要出错
+            'file': ('0.epub', open(book_path, 'rb')),
+        }
+
+        # calibre用的认证是DigestAuth
+        response = requests.post(url, data=None, files=files, auth=HTTPDigestAuth(username, password))
+        if response.status_code == 200:
+            print u'文件添加成功'
+        else:
+            print u'文件 %s 添加失败' % book_path
+        # print response.text
+
     # pic.wkcdn.com 有反爬虫机制
     # 不遵守robot.txt
     # header可以不要
@@ -190,4 +215,18 @@ class ImageDownloadPipeline(ImagesPipeline):
         # 写入epub文件
         epub.write_epub(epub_path, book, {})
 
+        # calibre相关
+        # 生成epub之后 是否上传到calibre服务器
+        settings = get_project_settings()
+        use_calibre = settings.get('USE_CALIBRE')
+        if use_calibre:
+            calibre_ip = settings.get('CALIBRE_IP')
+            calibre_library_name = settings.get('CALIBRE_LIBRARY_NAME')
+            # 用户名密码
+            calibre_username = settings.get('CALIBRE_USERNAME')
+            calibre_password = settings.get('CALIBRE_PASSWORD')
+            # 电子书重复是否覆盖
+            add_when_duplicate = settings.get('ADD_WHEN_DUPLICATE')
+
+            self.uplaod_book_to_calibre(epub_path, calibre_ip, calibre_username, calibre_password, calibre_library_name, add_when_duplicate)
         return item
