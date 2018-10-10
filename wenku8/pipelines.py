@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-26 20:54:08
+# @Last Modified time: 2018-10-09 17:57:40
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -20,6 +20,7 @@ from scrapy.exceptions import DropItem
 from scrapy.utils.project import get_project_settings
 import requests
 from requests.auth import HTTPDigestAuth
+import subprocess
 
 
 class Wenku8Pipeline(object):
@@ -98,6 +99,20 @@ class ImageDownloadPipeline(ImagesPipeline):
             print u'文件 %s 添加失败' % book_path
         # print response.text
 
+    @staticmethod
+    def uplaod_book_to_calibre_by_calibre_db(book_path, calibre_ip, username, password, calibre_library_name, add_when_duplicate=False, calibre_db_path=''):
+        # calibre_library_name = requests.utils.requote_uri(calibre_library_name)
+        """
+        给calibre添加电子书
+        """
+        calibre_library_path = 'http://' + calibre_ip + '/#' + calibre_library_name.encode('gbk')
+        cmds = [calibre_db_path, 'add', '--with-library', calibre_library_path, '--password', password, '--username', username]
+        if add_when_duplicate:
+            cmds.append('--duplicates')
+        cmds.append(book_path)
+        print ' '.join(cmds)
+        subprocess.call(cmds, shell=True, stdin=None, stdout=None, stderr=None, close_fds=False)
+
     # pic.wkcdn.com 有反爬虫机制
     # 不遵守robot.txt
     # header可以不要
@@ -117,7 +132,7 @@ class ImageDownloadPipeline(ImagesPipeline):
 
     def get_media_requests(self, item, info):
         if isinstance(item, ImageItem):
-            print u'下载卷 %s 的图片' % item['volumn_item']['volumn_index']
+            print u'下载卷 %s 的图片' % str(item['volumn_item']['volumn_index'])
             for image_url in item['image_urls']:
                 # print image_url
                 # 拼一下图片存储的路径
@@ -220,6 +235,10 @@ class ImageDownloadPipeline(ImagesPipeline):
         settings = get_project_settings()
         use_calibre = settings.get('USE_CALIBRE')
         if use_calibre:
+
+            use_calibre_db = settings.get('USE_CALIBRE_DB')
+            calibre_library_path = settings.get('CALIBRE_LIBRARY_PATH')
+            calibre_db_path = settings.get('CALIBRE_DB_PATH')
             calibre_ip = settings.get('CALIBRE_IP')
             calibre_library_name = settings.get('CALIBRE_LIBRARY_NAME')
             # 用户名密码
@@ -228,5 +247,10 @@ class ImageDownloadPipeline(ImagesPipeline):
             # 电子书重复是否覆盖
             add_when_duplicate = settings.get('ADD_WHEN_DUPLICATE')
 
-            self.uplaod_book_to_calibre(epub_path, calibre_ip, calibre_username, calibre_password, calibre_library_name, add_when_duplicate)
+            if use_calibre_db:
+                self.uplaod_book_to_calibre_by_calibre_db(epub_path, calibre_ip, calibre_username, calibre_password, calibre_library_name, add_when_duplicate, calibre_db_path)
+
+            else:
+
+                self.uplaod_book_to_calibre(epub_path, calibre_ip, calibre_username, calibre_password, calibre_library_name, add_when_duplicate)
         return item

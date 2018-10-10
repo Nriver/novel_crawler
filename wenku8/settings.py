@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-26 20:52:39
+# @Last Modified time: 2018-10-09 17:51:34
 # Scrapy settings for wenku8 project
 import sys
 reload(sys)
@@ -104,10 +104,15 @@ LOG_FILE = 'log.txt'
 
 # calibre设置
 USE_CALIBRE = True
-CALIBRE_IP = '192.168.1.2:10012'
+CALIBRE_IP = '192.168.1.5:10012'
 CALIBRE_LIBRARY_NAME = '临时书库'
 # calibre的用户名密码
 CALIBRE_USERNAME = 'ck567'
 CALIBRE_PASSWORD = 'ck567'
 # 电子书重复是否也添加
-ADD_WHEN_DUPLICATE = False
+ADD_WHEN_DUPLICATE = True
+
+# calibre db
+USE_CALIBRE_DB = True
+CALIBRE_DB_PATH = 'E:/soft/program files/Calibre2_64bit/calibredb.exe'
+CALIBRE_LIBRARY_PATH = 'i:/书库/临时书库/'
