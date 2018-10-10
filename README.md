@@ -1,7 +1,7 @@
 # novel_crawler
 Download novel from online website with scrapy.
-The aim is to download novel from https://www.wenku8.net and generate epub file.
-Then, if possible add the epub to local library.
+It can download novel from https://www.wenku8.net and generate epub file. If the online novel contains scanned illustrate pictures, this program will download them and add to the epub file, too.
+After generating the epub, you can optionally add the epub to a [Calibre](https://calibre-ebook.com/) content server.
 
 # how to use
 In cmd type follows:
@@ -13,3 +13,5 @@ eg. For novel "BACCANO!", it is 218, so the command would be like this:
 ```
 scrapy crawl novel -a no=218
 ```
+
+Change settings.py for Calibre settings.
