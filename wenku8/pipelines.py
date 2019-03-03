@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-10-09 17:57:40
+# @Last Modified time: 2019-03-03 20:07:30
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -137,9 +137,10 @@ class ImageDownloadPipeline(ImagesPipeline):
                 # print image_url
                 # 拼一下图片存储的路径
                 novel_no = item['volumn_item']['novel_info']['novel_no']
+                novel_name = item['volumn_item']['novel_info']['novel_name']
                 volumn_index = item['volumn_item']['volumn_index']
                 file_name = image_url.split('/')[-1]
-                file_store_path = novel_no + '/Images/' + str(volumn_index) + '/' + file_name
+                file_store_path = novel_no + '_' + novel_name + '/Images/' + str(volumn_index) + '/' + file_name
                 yield scrapy.Request(image_url, meta={'file_store_path': file_store_path}, headers=self.default_headers)
                 # yield scrapy.Request(image_url)
 
@@ -220,7 +221,7 @@ class ImageDownloadPipeline(ImagesPipeline):
         book.add_item(epub.EpubNav())
 
         # 生成epub文件
-        epub_folder = os.getcwd().replace('\\', '/') + '/download/' + novel_info['novel_no']
+        epub_folder = os.getcwd().replace('\\', '/') + '/download/' + novel_info['novel_no'] + '_' + novel_info['novel_name']
         epub_path = epub_folder + '/' + str(volumn_index) + '.epub'
         if not os.path.exists(epub_folder):
             try:
