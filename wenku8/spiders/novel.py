@@ -2,15 +2,12 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-09-26 12:57:28
+# @Last Modified time: 2019-03-31 19:35:26
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem, ImageItem
 from scrapy.utils.response import get_base_url
 from scrapy.utils.url import urljoin_rfc
-import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
 from bs4 import BeautifulSoup
 
 
@@ -76,7 +73,6 @@ class NovelSpider(scrapy.Spider):
         """
         # volumns = response.css(".vcss")
         # chapters = response.css(".ccss")
-
         novel_info = response.meta['novel_info']
         novel_no = novel_info['novel_no']
 
@@ -90,6 +86,7 @@ class NovelSpider(scrapy.Spider):
         current_chapter_count = 0
         # 获取当前请求的url 用于处理相对路径
         base_url = get_base_url(response)
+        # print('base_url', base_url)
         for td in tds:
             td_class = td.css("::attr(class)").extract_first()
 
@@ -131,11 +128,11 @@ class NovelSpider(scrapy.Spider):
         volumns.append(volumn)
 
         # 开始发送请求 获取各卷的每个章节的页面
-        print u'总卷数 %s' % len(volumns)
+        print('总卷数 %s' % len(volumns))
         for index, volumn in enumerate(volumns):
             chapter_index = 0
-            print index, volumn['volumn_name'], volumn['chapters'][chapter_index][1]
-            yield scrapy.Request(volumn['chapters'][chapter_index][1], meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': index}, callback=self.parse_chapter)
+            print(index, volumn['volumn_name'], str(volumn['chapters'][chapter_index][1], 'utf-8'))
+            yield scrapy.Request(str(volumn['chapters'][chapter_index][1], 'utf-8'), meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': index}, callback=self.parse_chapter)
 
     def parse_chapter(self, response):
         """
@@ -188,7 +185,7 @@ class NovelSpider(scrapy.Spider):
         volumn['chapters'][chapter_index].append(chapter_content)
         if len(volumn['chapters']) != chapter_index + 1:
             chapter_index += 1
-            yield scrapy.Request(volumn['chapters'][chapter_index][1], meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': volumn_index}, callback=self.parse_chapter)
+            yield scrapy.Request(str(volumn['chapters'][chapter_index][1], 'utf-8'), meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': volumn_index}, callback=self.parse_chapter)
 
         else:
             # 卷 item
@@ -199,7 +196,6 @@ class NovelSpider(scrapy.Spider):
             # yield volumn_item
 
             # 已经遍历完所有的章节 接下来要把图片下载下来
-            # print volumn['images']
             image_item = ImageItem()
             image_item['image_urls'] = volumn['images']
             image_item['volumn_item'] = volumn_item

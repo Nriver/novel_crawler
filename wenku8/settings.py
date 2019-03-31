@@ -2,12 +2,10 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2018-10-09 17:51:34
+# @Last Modified time: 2019-03-31 20:01:07
 # Scrapy settings for wenku8 project
-import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
 import os
+import platform
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
 #
@@ -75,7 +73,7 @@ ITEM_PIPELINES = {
     'wenku8.pipelines.ImageDownloadPipeline': 300,
 }
 # 设置图片下载路径
-IMAGES_STORE = 'e:\\GitHub\\novel_crawler\\download'
+IMAGES_STORE = 'download'
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://doc.scrapy.org/en/latest/topics/autothrottle.html
 #AUTOTHROTTLE_ENABLED = True
@@ -104,7 +102,7 @@ LOG_FILE = 'log.txt'
 
 # calibre设置
 USE_CALIBRE = True
-CALIBRE_IP = '192.168.1.5:10012'
+CALIBRE_IP = '192.168.1.6:10012'
 CALIBRE_LIBRARY_NAME = '临时书库'
 # calibre的用户名密码
 CALIBRE_USERNAME = 'ck567'
@@ -114,5 +112,13 @@ ADD_WHEN_DUPLICATE = True
 
 # calibre db
 USE_CALIBRE_DB = True
-CALIBRE_DB_PATH = 'E:/soft/program files/Calibre2_64bit/calibredb.exe'
-CALIBRE_LIBRARY_PATH = 'i:/书库/临时书库/'
+sysstr = platform.system()
+if(sysstr == "Windows"):
+    CALIBRE_DB_PATH = 'E:/soft/program files/Calibre2_64bit/calibredb.exe'
+    CALIBRE_LIBRARY_PATH = 'i:/书库/临时书库/'
+elif(sysstr == "Darwin"):
+    CALIBRE_DB_PATH = '/Applications/calibre.app/Contents/MacOS/calibredb'
+    CALIBRE_LIBRARY_PATH = '~/书库/临时书库/'
+else:
+    CALIBRE_DB_PATH = ''
+    CALIBRE_LIBRARY_PATH = ''

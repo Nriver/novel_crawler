@@ -2,15 +2,12 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2019-03-03 20:07:30
+# @Last Modified time: 2019-03-31 20:12:21
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
 import os
-import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
 from wenku8.items import VolumnItem, ChapterItem, ImageItem
 from bs4 import BeautifulSoup
 from ebooklib import epub
@@ -21,6 +18,7 @@ from scrapy.utils.project import get_project_settings
 import requests
 from requests.auth import HTTPDigestAuth
 import subprocess
+import platform
 
 
 class Wenku8Pipeline(object):
@@ -39,7 +37,7 @@ class Wenku8Pipeline(object):
             [x.extract() for x in soup_detail.find_all('ul', id='contentdp')]
 
             novel_no = item['novel_no']
-            print u'写入文件 卷数%s 章节%s ' % (volumn_index, chapter_index)
+            print('写入文件 卷数%s 章节%s ' % (volumn_index, chapter_index))
             # 创建文件夹
             volumn_folder = os.getcwd().replace('\\', '/') + '/download/' + str(novel_no) + '/' + str(volumn_index)
             chapter_file_path = str(volumn_folder) + '/' + str(chapter_index) + '.html'
@@ -50,7 +48,7 @@ class Wenku8Pipeline(object):
                     pass
             # 写文件
             with open(chapter_file_path, 'wb') as f:
-                f.write(unicode(soup_detail.prettify()))
+                f.write(soup_detail.prettify())
         # 这个return是很重要的
         # 如果不return 下一个pipeline就收不到item
         return item
@@ -72,7 +70,7 @@ class ImageDownloadPipeline(ImagesPipeline):
         soup_detail = BeautifulSoup(page_content, 'lxml', from_encoding='utf-8')
         # 删掉广告元素
         [x.extract() for x in soup_detail.find_all('ul', id='contentdp')]
-        return unicode(soup_detail.prettify())
+        return soup_detail.prettify()
 
     @staticmethod
     def get_cover_image(page_content):
@@ -94,9 +92,9 @@ class ImageDownloadPipeline(ImagesPipeline):
         # calibre用的认证是DigestAuth
         response = requests.post(url, data=None, files=files, auth=HTTPDigestAuth(username, password))
         if response.status_code == 200:
-            print u'文件添加成功'
+            print('文件添加成功')
         else:
-            print u'文件 %s 添加失败' % book_path
+            print('文件 %s 添加失败' % book_path)
         # print response.text
 
     @staticmethod
@@ -105,13 +103,25 @@ class ImageDownloadPipeline(ImagesPipeline):
         """
         给calibre添加电子书
         """
-        calibre_library_path = 'http://' + calibre_ip + '/#' + calibre_library_name.encode('gbk')
-        cmds = [calibre_db_path, 'add', '--with-library', calibre_library_path, '--password', password, '--username', username]
-        if add_when_duplicate:
-            cmds.append('--duplicates')
-        cmds.append(book_path)
-        print ' '.join(cmds)
-        subprocess.call(cmds, shell=True, stdin=None, stdout=None, stderr=None, close_fds=False)
+        sysstr = platform.system()
+        if(sysstr == "Windows"):
+            calibre_library_path = 'http://' + calibre_ip + '/#' + calibre_library_name
+            cmds = [calibre_db_path, 'add', '--with-library', calibre_library_path, '--password', password, '--username', username]
+            if add_when_duplicate:
+                cmds.append('--duplicates')
+            cmds.append(book_path)
+            print(' '.join(cmds))
+            subprocess.call(cmds, shell=True, stdin=None, stdout=None, stderr=None, close_fds=False)
+        else:
+            # mac下转义 '\#'
+            calibre_library_path = 'http://' + calibre_ip + '/\#' + calibre_library_name
+            cmds = [calibre_db_path, 'add', '--with-library', calibre_library_path, '--password', password, '--username', username]
+            if add_when_duplicate:
+                cmds.append('--duplicates')
+            cmds.append(book_path)
+            print(' '.join(cmds))
+            # mac 一定要用join后的命令 传list进去执行不了
+            subprocess.call(' '.join(cmds), shell=True, stdin=None, stdout=None, stderr=None, close_fds=False)
 
     # pic.wkcdn.com 有反爬虫机制
     # 不遵守robot.txt
@@ -132,15 +142,16 @@ class ImageDownloadPipeline(ImagesPipeline):
 
     def get_media_requests(self, item, info):
         if isinstance(item, ImageItem):
-            print u'下载卷 %s 的图片' % str(item['volumn_item']['volumn_index'])
+            print('下载卷 %s 的图片' % str(item['volumn_item']['volumn_index']))
             for image_url in item['image_urls']:
-                # print image_url
                 # 拼一下图片存储的路径
                 novel_no = item['volumn_item']['novel_info']['novel_no']
                 novel_name = item['volumn_item']['novel_info']['novel_name']
                 volumn_index = item['volumn_item']['volumn_index']
                 file_name = image_url.split('/')[-1]
                 file_store_path = novel_no + '_' + novel_name + '/Images/' + str(volumn_index) + '/' + file_name
+                print(image_url)
+                print(file_store_path)
                 yield scrapy.Request(image_url, meta={'file_store_path': file_store_path}, headers=self.default_headers)
                 # yield scrapy.Request(image_url)
 
@@ -164,7 +175,7 @@ class ImageDownloadPipeline(ImagesPipeline):
         volumn = volumn_item['volumn']
         novel_info = volumn_item['novel_info']
         # print volumn_item['volumn']['chapters'][0][2][:100]
-        print u'卷数%s图片下载完成 生成epub' % volumn_index
+        print('卷数%s图片下载完成 生成epub' % volumn_index)
 
         # 生成epub
         book = epub.EpubBook()
@@ -206,15 +217,15 @@ class ImageDownloadPipeline(ImagesPipeline):
             cover_ext = cover_url.split('.')[-1]
             image_folder_path = os.getcwd().replace('\\', '/') + '/download/' + novel_no + '/Images/' + str(volumn_index)
             cover_path = image_folder_path + '/cover.' + cover_ext
-            print u'下载缩略图 %s 保存路径 %s' % (cover_url, cover_path)
+            print('下载缩略图 %s 保存路径 %s' % (cover_url, cover_path))
             if not os.path.exists(image_folder_path):
                 os.makedirs(image_folder_path)
             try:
                 urllib.urlretrieve(cover_url, cover_path)
-                print u'封面文件已下载', os.path.exists(cover_path)
+                print('封面文件已下载', os.path.exists(cover_path))
                 book.set_cover('Images/cover.' + cover_ext, content=open(cover_path, 'rb').read(), create_page=True)
             except:
-                print u'小说 %s 封面下载失败' % book.title
+                print('小说 %s 封面下载失败' % book.title)
 
         # 加入默认的ncx和nav(做什么的?)
         book.add_item(epub.EpubNcx())
@@ -223,6 +234,7 @@ class ImageDownloadPipeline(ImagesPipeline):
         # 生成epub文件
         epub_folder = os.getcwd().replace('\\', '/') + '/download/' + novel_info['novel_no'] + '_' + novel_info['novel_name']
         epub_path = epub_folder + '/' + str(volumn_index) + '.epub'
+        print('epub存储路径', epub_path)
         if not os.path.exists(epub_folder):
             try:
                 os.makedirs(epub_folder)
@@ -230,13 +242,13 @@ class ImageDownloadPipeline(ImagesPipeline):
                 pass
         # 写入epub文件
         epub.write_epub(epub_path, book, {})
-
+        print('写入epub成功')
         # calibre相关
         # 生成epub之后 是否上传到calibre服务器
         settings = get_project_settings()
         use_calibre = settings.get('USE_CALIBRE')
         if use_calibre:
-
+            print('上传到calibre书库')
             use_calibre_db = settings.get('USE_CALIBRE_DB')
             calibre_library_path = settings.get('CALIBRE_LIBRARY_PATH')
             calibre_db_path = settings.get('CALIBRE_DB_PATH')
