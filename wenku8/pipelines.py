@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2019-03-31 20:12:21
+# @Last Modified time: 2020-03-15 21:32:03
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -25,9 +25,9 @@ class Wenku8Pipeline(object):
 
     def process_item(self, item, spider):
         # 预订删除
-        # print u'执行 pipeline'
+        print('执行 pipeline')
         if isinstance(item, ChapterItem):
-            # print u'处理章节'
+            print('处理章节')
             volumn_index = item['volumn_index']
             chapter_index = item['chapter_index']
             chapter_content = item['chapter_content']
@@ -129,7 +129,7 @@ class ImageDownloadPipeline(ImagesPipeline):
     # 如果要添加 一定不能加referer 有referer就会被屏蔽
 
     default_headers = {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3',
         'Accept-Encoding': 'gzip, deflate',
         'Accept-Language': 'zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7',
         'Cache-Control': 'max-age=0',
@@ -137,8 +137,9 @@ class ImageDownloadPipeline(ImagesPipeline):
         'Host': 'pic.wkcdn.com',
         'Proxy-Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': 1,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.106 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.86 Safari/537.36',
     }
+    default_headers = {}
 
     def get_media_requests(self, item, info):
         if isinstance(item, ImageItem):
@@ -150,8 +151,8 @@ class ImageDownloadPipeline(ImagesPipeline):
                 volumn_index = item['volumn_item']['volumn_index']
                 file_name = image_url.split('/')[-1]
                 file_store_path = novel_no + '_' + novel_name + '/Images/' + str(volumn_index) + '/' + file_name
-                print(image_url)
-                print(file_store_path)
+                print('图片下载路径', image_url)
+                print('图片保存路径', file_store_path)
                 yield scrapy.Request(image_url, meta={'file_store_path': file_store_path}, headers=self.default_headers)
                 # yield scrapy.Request(image_url)
 

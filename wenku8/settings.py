@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2019-03-31 20:01:07
+# @Last Modified time: 2020-03-15 21:43:42
 # Scrapy settings for wenku8 project
 import os
 import platform
@@ -101,7 +101,7 @@ IMAGES_STORE = 'download'
 LOG_FILE = 'log.txt'
 
 # calibre设置
-USE_CALIBRE = True
+USE_CALIBRE = False
 CALIBRE_IP = '192.168.1.6:10012'
 CALIBRE_LIBRARY_NAME = '临时书库'
 # calibre的用户名密码
@@ -111,7 +111,7 @@ CALIBRE_PASSWORD = 'ck567'
 ADD_WHEN_DUPLICATE = True
 
 # calibre db
-USE_CALIBRE_DB = True
+USE_CALIBRE_DB = False
 sysstr = platform.system()
 if(sysstr == "Windows"):
     CALIBRE_DB_PATH = 'E:/soft/program files/Calibre2_64bit/calibredb.exe'

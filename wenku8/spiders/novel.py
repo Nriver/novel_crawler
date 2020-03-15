@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2019-03-31 19:35:26
+# @Last Modified time: 2020-03-15 21:26:35
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem, ImageItem
@@ -31,10 +31,11 @@ class NovelSpider(scrapy.Spider):
 
     def start_requests(self):
         novel_no = getattr(self, 'no', None)
-        if novel_no != None:
+        if novel_no:
             url = 'https://www.wenku8.net/book/%s.htm' % novel_no
         else:
-            url = 'https://www.wenku8.net/book/1213.htm'
+            url = 'https://www.wenku8.net/book/2702.htm'
+        print('解析地址', url)
         yield scrapy.Request(url, self.parse)
 
     def parse(self, response):
@@ -42,15 +43,20 @@ class NovelSpider(scrapy.Spider):
         小说首页解析
         scrapy shell https://www.wenku8.net/book/1618.htm
         scrapy shell https://www.wenku8.net/book/1715.htm
+        scrapy shell https://www.wenku8.net/book/2702.htm
         """
         # 小说名称
         novel_name = response.css("#content > div:nth-child(1) > table:nth-child(1) > tr:nth-child(1) > td > table > tr > td:nth-child(1) > span > b::text").extract_first().strip()
+        print('novel_name', novel_name)
         # 作者
         novel_author = response.css("#content > div:nth-child(1) > table:nth-child(1) > tr:nth-child(2) > td:nth-child(2)::text").extract_first()[5:].strip()
+        print('novel_author', novel_author)
         # 封面图(仅在没有更好的图片的时候才用)
         novel_cover = response.css("#content > div:nth-child(1) > table:nth-child(4) > tr > td:nth-child(1) > img::attr(src)").extract_first()
+        print('封面', novel_cover)
         # 小说简介
         novel_description = ''.join(response.css("#content > div:nth-child(1) > table:nth-child(4) > tr > td:nth-child(2) > span:nth-child(11)::text").extract())
+        print('novel_description', novel_description)
 
         novel_info = {}
         novel_no = response.url.split('/')[-1].split('.')[0]
@@ -71,6 +77,7 @@ class NovelSpider(scrapy.Spider):
         目录解析
         scrapy shell https://www.wenku8.net/novel/1/1618/index.htm
         """
+        print('parse_index() 目录解析')
         # volumns = response.css(".vcss")
         # chapters = response.css(".ccss")
         novel_info = response.meta['novel_info']
@@ -86,7 +93,7 @@ class NovelSpider(scrapy.Spider):
         current_chapter_count = 0
         # 获取当前请求的url 用于处理相对路径
         base_url = get_base_url(response)
-        # print('base_url', base_url)
+        print('base_url', base_url)
         for td in tds:
             td_class = td.css("::attr(class)").extract_first()
 
@@ -131,7 +138,7 @@ class NovelSpider(scrapy.Spider):
         print('总卷数 %s' % len(volumns))
         for index, volumn in enumerate(volumns):
             chapter_index = 0
-            print(index, volumn['volumn_name'], str(volumn['chapters'][chapter_index][1], 'utf-8'))
+            print('卷数信息:', index, volumn['volumn_name'], str(volumn['chapters'][chapter_index][1], 'utf-8'))
             yield scrapy.Request(str(volumn['chapters'][chapter_index][1], 'utf-8'), meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': index}, callback=self.parse_chapter)
 
     def parse_chapter(self, response):
@@ -139,6 +146,7 @@ class NovelSpider(scrapy.Spider):
         页面解析
         scrapy shell https://www.wenku8.net/novel/1/1618/54879.htm
         """
+        print('parse_chapter() 页面解析')
         novel_info = response.meta['novel_info']
         volumn = response.meta['volumn']
         chapter_index = response.meta['chapter_index']
