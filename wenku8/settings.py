@@ -2,10 +2,13 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2020-03-16 00:28:48
+# @Last Modified time: 2020-03-17 19:27:53
 # Scrapy settings for wenku8 project
 import os
 import platform
+import configparser
+import sys
+
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
 #
@@ -100,26 +103,22 @@ IMAGES_STORE = 'download'
 # LOG_FORMAT = '%(levelname)s: %(message)s'
 LOG_FILE = 'log.txt'
 
-# calibre设置
-USE_CALIBRE = True
-CALIBRE_IP = '192.168.1.5:8080'
-CALIBRE_LIBRARY_NAME = '文库吧'
-CALIBRE_LOGIN = True
-# calibre的用户名密码
-CALIBRE_USERNAME = 'ck567'
-CALIBRE_PASSWORD = 'ck567'
-# 电子书重复是否也添加
-ADD_WHEN_DUPLICATE = False
-
-# calibre db
-USE_CALIBRE_DB = True
-sysstr = platform.system()
-if(sysstr == "Windows"):
-    CALIBRE_DB_PATH = 'E:/soft/program files/Calibre2_64bit/calibredb.exe'
-    CALIBRE_LIBRARY_PATH = 'i:/data/书库/文库吧/'
-elif(sysstr == "Darwin"):
-    CALIBRE_DB_PATH = '/Applications/calibre.app/Contents/MacOS/calibredb'
-    CALIBRE_LIBRARY_PATH = '~/书库/文库吧/'
+conf = configparser.ConfigParser()
+if sys.platform == 'darwin':
+    conf.read('app.mac.conf')
 else:
-    CALIBRE_DB_PATH = ''
-    CALIBRE_LIBRARY_PATH = ''
+    conf.read('app.conf')
+# calibre设置
+USE_CALIBRE = conf.getboolean('app', 'USE_CALIBRE')
+CALIBRE_IP = conf.get('app', 'CALIBRE_IP')
+CALIBRE_LIBRARY_NAME = conf.get('app', 'CALIBRE_LIBRARY_NAME')
+CALIBRE_LOGIN = conf.getboolean('app', 'CALIBRE_LOGIN')
+# calibre的用户名密码
+CALIBRE_USERNAME = conf.get('app', 'CALIBRE_USERNAME')
+CALIBRE_PASSWORD = conf.get('app', 'CALIBRE_PASSWORD')
+# 电子书重复是否也添加
+ADD_WHEN_DUPLICATE = conf.getboolean('app', 'ADD_WHEN_DUPLICATE')
+# calibre db
+USE_CALIBRE_DB = conf.get('app', 'USE_CALIBRE_DB')
+CALIBRE_DB_PATH = conf.get('app', 'CALIBRE_DB_PATH')
+CALIBRE_LIBRARY_PATH = conf.get('app', 'CALIBRE_LIBRARY_PATH')

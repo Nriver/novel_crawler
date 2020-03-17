@@ -1,6 +1,8 @@
 #Nate's ignore list
 log.txt
 download/
+app.conf
+app.mac.conf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

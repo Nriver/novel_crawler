@@ -1,0 +1,18 @@
+[app]
+# calibre设置
+USE_CALIBRE = True
+CALIBRE_IP = 192.168.1.1
+CALIBRE_LIBRARY_NAME = 
+CALIBRE_LOGIN = True
+
+# calibre的用户名密码
+CALIBRE_USERNAME = 
+CALIBRE_PASSWORD = 
+
+# 电子书重复是否也添加
+ADD_WHEN_DUPLICATE = False
+
+# calibre db
+USE_CALIBRE_DB = True
+CALIBRE_DB_PATH = 
+CALIBRE_LIBRARY_PATH = 
