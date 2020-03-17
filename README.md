@@ -15,3 +15,5 @@ scrapy crawl novel -a no=218
 ```
 
 Change settings.py for Calibre settings.
+
+Notice, if Calibre does not have a authentication, the enable-local-write in sharing config need to be enabled.

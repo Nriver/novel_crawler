@@ -2,7 +2,7 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 20:12:01
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2020-03-15 21:32:03
+# @Last Modified time: 2020-03-15 23:22:03
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
@@ -98,7 +98,7 @@ class ImageDownloadPipeline(ImagesPipeline):
         # print response.text
 
     @staticmethod
-    def uplaod_book_to_calibre_by_calibre_db(book_path, calibre_ip, username, password, calibre_library_name, add_when_duplicate=False, calibre_db_path=''):
+    def uplaod_book_to_calibre_by_calibre_db(book_path, calibre_ip, calibre_login, username, password, calibre_library_name, add_when_duplicate=False, calibre_db_path=''):
         # calibre_library_name = requests.utils.requote_uri(calibre_library_name)
         """
         给calibre添加电子书
@@ -106,7 +106,9 @@ class ImageDownloadPipeline(ImagesPipeline):
         sysstr = platform.system()
         if(sysstr == "Windows"):
             calibre_library_path = 'http://' + calibre_ip + '/#' + calibre_library_name
-            cmds = [calibre_db_path, 'add', '--with-library', calibre_library_path, '--password', password, '--username', username]
+            cmds = [calibre_db_path, 'add', '--with-library', calibre_library_path]
+            if calibre_login:
+                cmds.extend(['--password', password, '--username', username])
             if add_when_duplicate:
                 cmds.append('--duplicates')
             cmds.append(book_path)
@@ -256,15 +258,15 @@ class ImageDownloadPipeline(ImagesPipeline):
             calibre_ip = settings.get('CALIBRE_IP')
             calibre_library_name = settings.get('CALIBRE_LIBRARY_NAME')
             # 用户名密码
+            calibre_login = settings.get('CALIBRE_LOGIN')
             calibre_username = settings.get('CALIBRE_USERNAME')
             calibre_password = settings.get('CALIBRE_PASSWORD')
             # 电子书重复是否覆盖
             add_when_duplicate = settings.get('ADD_WHEN_DUPLICATE')
 
             if use_calibre_db:
-                self.uplaod_book_to_calibre_by_calibre_db(epub_path, calibre_ip, calibre_username, calibre_password, calibre_library_name, add_when_duplicate, calibre_db_path)
+                self.uplaod_book_to_calibre_by_calibre_db(epub_path, calibre_ip, calibre_login, calibre_username, calibre_password, calibre_library_name, add_when_duplicate, calibre_db_path)
 
             else:
-
                 self.uplaod_book_to_calibre(epub_path, calibre_ip, calibre_username, calibre_password, calibre_library_name, add_when_duplicate)
         return item

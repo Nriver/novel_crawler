@@ -2,13 +2,15 @@
 # @Author: Zengjq
 # @Date:   2018-09-23 09:18:38
 # @Last Modified by:   Zengjq
-# @Last Modified time: 2020-03-15 21:26:35
+# @Last Modified time: 2020-03-16 00:07:59
 import os
 import scrapy
 from wenku8.items import ChapterItem, VolumnItem, ImageItem
 from scrapy.utils.response import get_base_url
 from scrapy.utils.url import urljoin_rfc
 from bs4 import BeautifulSoup
+from scrapy.utils.project import get_project_settings
+import subprocess
 
 
 class NovelSpider(scrapy.Spider):
@@ -139,6 +141,31 @@ class NovelSpider(scrapy.Spider):
         for index, volumn in enumerate(volumns):
             chapter_index = 0
             print('卷数信息:', index, volumn['volumn_name'], str(volumn['chapters'][chapter_index][1], 'utf-8'))
+            file_name = novel_info['novel_name'] + ' ' + volumn['volumn_name']
+            settings = get_project_settings()
+            if settings.get('USE_CALIBRE'):
+                print('检查是否已经存在:', file_name)
+                if settings.get('USE_CALIBRE_DB'):
+                    calibre_db_path = settings.get('CALIBRE_DB_PATH')
+                    calibre_ip = settings.get('CALIBRE_IP')
+                    calibre_library_name = settings.get('CALIBRE_LIBRARY_NAME')
+
+                    calibre_library_path = 'http://' + calibre_ip + '/#' + calibre_library_name
+                    cmds = [calibre_db_path, 'list', '--with-library', calibre_library_path]
+                    if settings.get('CALIBRE_LOGIN'):
+                        cmds.extend(['--password', settings.get('CALIBRE_PASSWORD'), '--username', settings.get('CALIBRE_USERNAME')])
+                    cmds.extend(['--search', '"' + file_name + '"'])
+                    print(cmds)
+                    p = subprocess.Popen(cmds, stdout=subprocess.PIPE)
+                    res = p.stdout.readlines()
+                    print(res)
+                    if len(res) != 1:
+                        print('已存在, 跳过', file_name)
+                        continue
+                    # res = subprocess.check_output(cmds, shell=True)
+                    # print(res)
+                else:
+                    print('need check')
             yield scrapy.Request(str(volumn['chapters'][chapter_index][1], 'utf-8'), meta={'novel_info': novel_info, 'volumn': volumn, 'chapter_index': chapter_index, 'volumn_index': index}, callback=self.parse_chapter)
 
     def parse_chapter(self, response):
