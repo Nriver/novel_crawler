@@ -1,5 +1,5 @@
 # novel_crawler
-Download novel from online website with scrapy.
+Now download your favorite novel from online website with scrapy.
 It can download novel from https://www.wenku8.net and generate epub file. If the online novel contains scanned illustrate pictures, this program will download them and add to the epub file, too.
 After generating the epub, you can optionally add the epub to a [Calibre](https://calibre-ebook.com/) content server.
 
