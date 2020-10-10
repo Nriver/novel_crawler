@@ -1,3 +1,5 @@
+import platform
+
 # calibre设置
 USE_CALIBRE = True
 CALIBRE_IP = '192.168.1.5:8080'
